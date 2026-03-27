@@ -5,6 +5,8 @@ import type { Aircraft } from '$lib/tracker/types.js';
 import type { SBSMessage, AircraftJson, AdapterStatus } from '$lib/input/types.js';
 import { updateTracker, pruneStale, getAircraftList } from '$lib/tracker/tracker.js';
 import { AltitudeUnit } from '$lib/parser/types.js';
+import { addCoveragePoint } from '$lib/recorder/coverage.js';
+import { recordSnapshot, isRecording } from '$lib/recorder/recorder.js';
 
 // ── State ──────────────────────────────────────────────────────────────────
 
@@ -17,6 +19,8 @@ export const trackerState = $state({
 	messageCount: 0,
 	/** ICAO of the selected aircraft (for detail panel). */
 	selectedIcao: null as string | null,
+	/** Whether a session is currently being recorded. */
+	recording: false,
 	/** Current adapter connection status. */
 	adapterStatus: 'idle' as AdapterStatus,
 	/** Human-readable status message. */
@@ -89,6 +93,8 @@ export function applyAircraftJson(aircraft: AircraftJson[], serverNow: number): 
 			ac.lon = a.lon;
 			const seenPosMs = now - (a.seen_pos ?? 0) * 1000;
 			ac.lastPosition = seenPosMs;
+			// Accumulate coverage point (fire-and-forget)
+			addCoveragePoint(a.lat, a.lon);
 		}
 
 		if (a.category) {
@@ -104,6 +110,12 @@ export function applyAircraftJson(aircraft: AircraftJson[], serverNow: number): 
 	pruneStale(_map, now - 60_000);
 	trackerState.aircraft = getAircraftList(_map);
 	void serverNow; // used for clock sync in future
+
+	// Record snapshot if active
+	if (isRecording()) {
+		recordSnapshot(aircraft).catch(() => {});
+	}
+	trackerState.recording = isRecording();
 }
 
 /** Remove aircraft that have not been heard for the stale timeout. */

@@ -12,9 +12,18 @@
 	import { JsonPoller } from '$lib/input/json-poller.js';
 	import { WebSocketAdapter } from '$lib/input/websocket.js';
 	import { DemoAdapter } from '$lib/input/demo.js';
+	import { startRecording, stopRecording } from '$lib/recorder/recorder.js';
 	import type { AdapterStatus, AircraftJson, SBSMessage } from '$lib/input/types.js';
 	import type { Aircraft } from '$lib/tracker/types.js';
 	import type { Map as MapLibreMap } from 'maplibre-gl';
+
+	async function toggleRecording() {
+		if (trackerState.recording) {
+			await stopRecording();
+		} else {
+			await startRecording();
+		}
+	}
 
 	// ── Connection form ─────────────────────────────────────────────────────
 	type AdapterChoice = 'demo' | 'json-poll' | 'websocket';
@@ -243,6 +252,14 @@
 				<span class="stat-val">{trackerState.messageCount.toLocaleString()}</span>
 				<span class="stat-label">MSG</span>
 			</span>
+			<button
+				class="rec-btn"
+				class:recording={trackerState.recording}
+				onclick={toggleRecording}
+				title={trackerState.recording ? 'Stop recording' : 'Start recording'}
+			>
+				{trackerState.recording ? '⏹ REC' : '⏺ REC'}
+			</button>
 			<span class="status-dot" style="background:{statusColor(trackerState.adapterStatus)}"
 				title={trackerState.statusMessage}></span>
 			<span class="status-text">{trackerState.statusMessage}</span>
@@ -526,6 +543,19 @@
 		border-radius: 50%;
 		flex-shrink: 0;
 	}
+
+	.rec-btn {
+		background: #1a1a1a;
+		border: 1px solid #333;
+		color: #555;
+		font-family: inherit;
+		font-size: 9px;
+		letter-spacing: 2px;
+		padding: 3px 8px;
+	}
+	.rec-btn:hover { color: #c8c8c8; border-color: #555; }
+	.rec-btn.recording { color: #ff5252; border-color: #5a2a2a; animation: blink 1s step-end infinite; }
+	@keyframes blink { 50% { opacity: 0.5; } }
 
 	.status-text {
 		font-size: 10px;

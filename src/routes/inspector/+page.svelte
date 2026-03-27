@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { parseHex } from '$lib/parser/index.js';
 	import type { ModeSMessage, ADSBData } from '$lib/parser/types.js';
 	import { ADSBMessageType, AltitudeUnit, CPRFormat } from '$lib/parser/types.js';
@@ -6,6 +7,13 @@
 	let inputHex = $state('');
 	let result = $state<ModeSMessage | null>(null);
 	let error = $state<string | null>(null);
+
+	// Allow ?hex=<frame> from generator link
+	onMount(() => {
+		const params = new URLSearchParams(window.location.search);
+		const hex = params.get('hex');
+		if (hex) { inputHex = hex; parse(); }
+	});
 
 	const REFERENCE_MESSAGES = [
 		{ label: 'DF17 Ident — KLM1023', hex: '8D4840D6202CC371C32CE0576098' },
